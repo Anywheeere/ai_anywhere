@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Body
 from fastapi.responses import JSONResponse, FileResponse
+from docent import AiDocent
 import uvicorn, json
 
 app = FastAPI()
@@ -7,8 +8,11 @@ app = FastAPI()
 @app.get('/docent')
 async def docent(text:dict=Body(...)):
     docent = text.get('text')
+    aidocent = AiDocent(docent)
+    result = aidocent.run_llm()
+    
     audio = './result.wav'
-    return JSONResponse(content={'docent':docent, 'audio':audio})
+    return JSONResponse(content={'docent':result, 'audio':audio})
 
 @app.get('/audio')
 async def audio(path:dict=Body(...)):
