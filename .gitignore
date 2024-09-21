@@ -162,3 +162,14 @@ cython_debug/
 #.idea/
 
 result.wav
+docentDB
+GPT_XTTS_V2.0_DOCENT_FT-September-19-2024_08+08PM-6c0770c
+tts_model
+voice_data
+XTTS_v2.0_original_model_files
+youtube_output_files
+city_data.csv
+city_with_landmark.csv
+docent_test.ipynb
+landmark_data.txt
+tts_test.ipynb
