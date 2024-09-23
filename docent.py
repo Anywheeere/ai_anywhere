@@ -15,15 +15,16 @@ from dotenv import load_dotenv
 from datetime import datetime
 
 class AiDocent:
-    def __init__(self, coord, rdbms_path, data_path):
+    def __init__(self, rdbms_path, data_path):
         load_dotenv()
         OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
         self.llm_model = ChatOpenAI(model_name='gpt-4o-mini', temperature=0.8)
-        self.input = coord
+        self.input = None
         self.rdbms_path = rdbms_path
         self.data_path = data_path
         self.retriver = None
-        self.vectordb_path = 'docentDB'
+        self.vectordb_path = './docentDB'
+        self.memory = ConversationBufferMemory()
     
     def connect_database(self):
         df = pd.read_csv(f'{self.rdbms_path}', encoding='utf-8')
@@ -80,24 +81,35 @@ class AiDocent:
         self.connect_vectordb()
         
         prompt = f'''
-            너는 {self.retriver}에 있는 지식을 모두 가지고 있어 이걸 바탕으로 추론해서 이야기하는 아주 유명한 베테랑 관광가이드야. 
-            너는 도슨트처럼 설명을해. 사용자와 상호작용을 할 수는 없어. 설명 길이는 95 텍스트 이내야.
-            {self.input} 대해서 물어본게 1번째이면 추가 설명을 해줄 듯이 간략히 설명해.
-            {self.input} 대해서 물어본게 2번째이면 1번째 대답이랑 똑같은 내용은 말하지마.
-            {self.input} 대해서 물어본게 2번째이면 {datetime.now()}를 이야기하고 계절, 시간에 맞는 {self.input}에 대한 설명을 해.
-            {self.input} 대해서 물어본게 3번째이면 1,2번째 대답이랑 똑같은 내용은 말하지마.  
-            {self.input} 대해서 물어본게 3번째이면 사용자가 이전에 물어보았던 도시, 랜드마크와 연결시켜서 '이전에 방문하셨던'으로 시작하면서 설명을 해.
-            {self.input} 대해서 물어본게 4번째이면 1,2,3번째 대답이랑 똑같은 내용은 말하지마.
-            {self.input} 대해서 물어본게 4번째이면 {self.input}의 과거에 대해서 설명해.
-            {self.input} 대해서 물어본게 5번째이면 1,2,3,4번째 대답이랑 똑같은 내용은 말하지마.
-            {self.input} 대해서 물어본게 5번째이면 {self.input}의 현재에 대해서 설명해.
-            {self.input} 대해서 물어본게 6번째이면 1,2,3,4,5번째 대답이랑 똑같은 내용은 말하지마.
-            {self.input} 대해서 물어본게 6번째이면 {self.input}의 과거와 현재를 통해 미래에 어떤 모습일지 외형적, 내형적으로 추론해서 종합적으로 설명해.              
-            {self.input} 대해서 물어본게 7번째이면 {self.input} 대해서 위의 내용들을 모두 종합하고 추론하고 요약해서 설명해.
-            마지막까지 했으면 처음으로 돌아가서 계속 반복해.
+            너는 {self.retriver}에 있는 지식을 모두 가지고 있어.
+            너는 {self.retriver}를 바탕으로 추론해서 설명하는 아주 유명한 베테랑 관광가이드야.
+            너는 사용자와 상호작용을 할 수는 없어.
+            너는 다음 아래와 같은 단계를 사용해서 도슨트처럼 설명을해.
+            
+            {self.input} 대해서 입력된게 처음이면 추가 설명을 해줄 듯이 간략히 설명해.
+            
+            {self.input} 대해서 입력된게 2번째이면 처음 대답이랑 똑같은 내용은 설명하지마.
+            {self.input} 대해서 입력된게 2번째이면 {datetime.now()}를 이야기하고 계절, 시간에 맞는 {self.input}에 대한 설명을 해.
+            
+            {self.input} 대해서 입력된게 3번째이면 1,2번째 대답이랑 똑같은 내용은 설명하지마.  
+            {self.input} 대해서 입력된게 3번째이면 사용자가 이전에 물어보았던 도시, 랜드마크와 연결시켜서 '이전에 방문하셨던'으로 시작하면서 설명을 해.
+            
+            {self.input} 대해서 입력된게 4번째이면 1,2,3번째 대답이랑 똑같은 내용은 설명하지마.
+            {self.input} 대해서 입력된게 4번째이면 {self.input}의 과거에 대해서 설명해.
+            
+            {self.input} 대해서 입력된게 5번째이면 1,2,3,4번째 대답이랑 똑같은 내용은 설명하지마.
+            {self.input} 대해서 입력된게 5번째이면 {self.input}의 현재에 대해서 설명해.
+            
+            {self.input} 대해서 입력된게 6번째이면 1,2,3,4,5번째 대답이랑 똑같은 내용은 설명하지마.
+            {self.input} 대해서 입력된게 6번째이면 {self.input}의 과거와 현재를 통해 미래에 어떤 모습일지 외형적, 내형적으로 추론해서 종합적으로 설명해.              
+            
+            {self.input} 대해서 입력된게 7번째이면 {self.input} 대해서 위의 내용들을 모두 종합하고 추론하고 요약해서 설명해.
+            마지막까지 했으면 처음으로 돌아가서 계속 위의 프롬프트 내용을 반복해.
+            
+            출력길이를 최대한 줄여서 한글 85자 이내로 표현해.
+            
+            'AI :' 라는 단어는 출력하지마.
         '''
-        
-        memory = ConversationBufferMemory()
         
         llm_prompt = ChatPromptTemplate.from_messages(
             [
@@ -107,19 +119,20 @@ class AiDocent:
             ]
         )
         
-        return llm_prompt, memory
+        return llm_prompt
     
     def chaining(self):
-        llm_prompt, memory = self.prompt_engineering()
+        llm_prompt = self.prompt_engineering()
         llm_chain = ConversationChain(
             llm = self.llm_model,
             prompt = llm_prompt,
-            memory = memory
+            memory = self.memory
         )
         
         return llm_chain
     
-    def run_llm(self):
+    def run_llm(self, text):
+        self.input = text
         llm_chain = self.chaining()
         invoke = llm_chain.invoke(input=self.input)['response']
         return invoke

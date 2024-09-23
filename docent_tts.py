@@ -31,3 +31,4 @@ class AiSpeech:
         )    
         
         torchaudio.save('output.wav', torch.tensor(out["wav"]).unsqueeze(0), 24000)
+        return True
